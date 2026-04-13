@@ -36,31 +36,42 @@ export function StartupGate({ children }: StartupGateProps) {
 
   useEffect(() => {
     async function init() {
-      const meta = readSessionMetadata();
-      setMetadata(meta);
-      const resolved = resolveStartupMode(meta);
+      try {
+        const meta = readSessionMetadata();
+        setMetadata(meta);
+        const resolved = resolveStartupMode(meta);
 
-      if (resolved === 'fresh') {
-        // First visit — initialize with defaults immediately
+        if (resolved === 'fresh') {
+          // First visit — initialize with defaults immediately
+          const defaults = createDefaultWorkspace();
+          hydrateStore(defaults.preferences.selectedIndexIds);
+          try {
+            await saveAppState(defaults);
+          } catch {
+            // Storage failure is non-fatal; app works without persistence
+          }
+          setMode('fresh');
+          return;
+        }
+
+        if (resolved === 'silent_resume') {
+          // Restore without prompting
+          const workspace = await hydrateAppState();
+          hydrateStore(
+            workspace?.preferences.selectedIndexIds ?? createDefaultWorkspace().preferences.selectedIndexIds
+          );
+          setMode('silent_resume');
+          return;
+        }
+
+        // 'prompt_resume' — show the decision screen
+        setMode('prompt_resume');
+      } catch {
+        // If anything fails during startup, fall back to fresh defaults
         const defaults = createDefaultWorkspace();
         hydrateStore(defaults.preferences.selectedIndexIds);
-        await saveAppState(defaults);
         setMode('fresh');
-        return;
       }
-
-      if (resolved === 'silent_resume') {
-        // Restore without prompting
-        const workspace = await hydrateAppState();
-        hydrateStore(
-          workspace?.preferences.selectedIndexIds ?? createDefaultWorkspace().preferences.selectedIndexIds
-        );
-        setMode('silent_resume');
-        return;
-      }
-
-      // 'prompt_resume' — show the decision screen
-      setMode('prompt_resume');
     }
 
     init();

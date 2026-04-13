@@ -1,6 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { AppProviders } from './providers';
+import { ErrorBoundary } from '../shared/ui/ErrorBoundary';
 import App from './App';
 import '../styles/index.css';
 
@@ -9,8 +10,10 @@ if (!rootElement) throw new Error('Root element #root not found in index.html');
 
 createRoot(rootElement).render(
   <StrictMode>
-    <AppProviders>
-      <App />
-    </AppProviders>
+    <ErrorBoundary>
+      <AppProviders>
+        <App />
+      </AppProviders>
+    </ErrorBoundary>
   </StrictMode>
 );
