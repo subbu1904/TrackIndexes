@@ -9,6 +9,7 @@ import {
   saveAppState,
 } from '../persistence/hydrate';
 import { CURRENT_WORKSPACE_VERSION } from '../types';
+import { StatusNotice } from '../../../shared/ui/StatusNotice';
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -21,7 +22,11 @@ interface SettingsPanelProps {
 export function SettingsPanel({ onClose }: SettingsPanelProps) {
   const { selectedIndexIds, toggleIndex, hydrate } = usePreferencesStore();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [importError, setImportError] = useState<string | null>(null);
+  const [status, setStatus] = useState<{
+    tone: 'info' | 'success' | 'error';
+    message: string;
+  } | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
 
   const catalog = getCatalogByCategory();
@@ -32,25 +37,47 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
       preferences: { selectedIndexIds },
       savedAt: Date.now(),
     });
+    setStatus({
+      tone: 'success',
+      message: 'Backup download started. Check your browser downloads if it does not appear immediately.',
+    });
   }
 
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file) return;
-    setImportError(null);
+    if (!file) {
+      setStatus({
+        tone: 'info',
+        message: 'No file selected. Choose a TrackIndexes backup JSON file to restore your saved indexes.',
+      });
+      return;
+    }
 
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      try {
-        const workspace = importPersistedState(ev.target?.result as string);
-        hydrate(workspace.preferences.selectedIndexIds);
-        await saveAppState(workspace);
-        onClose();
-      } catch (err) {
-        setImportError((err as Error).message);
-      }
-    };
-    reader.readAsText(file);
+    setIsImporting(true);
+    setStatus({
+      tone: 'info',
+      message: `Importing ${file.name}...`,
+    });
+
+    try {
+      const raw = await file.text();
+      const workspace = importPersistedState(raw);
+      hydrate(workspace.preferences.selectedIndexIds);
+      await saveAppState(workspace);
+      setStatus({
+        tone: 'success',
+        message: `Imported ${file.name}. Reopening the app with your saved indexes.`,
+      });
+      onClose();
+    } catch (err) {
+      setStatus({
+        tone: 'error',
+        message: (err as Error).message,
+      });
+    } finally {
+      setIsImporting(false);
+      e.target.value = '';
+    }
   }
 
   async function handleReset() {
@@ -129,10 +156,17 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           </button>
 
           <button
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full rounded-lg border border-slate-600 py-2 text-sm text-slate-300 hover:border-slate-400 hover:text-slate-100"
+            onClick={() => {
+              setStatus({
+                tone: 'info',
+                message: 'Choose a TrackIndexes backup JSON file to import.',
+              });
+              fileInputRef.current?.click();
+            }}
+            disabled={isImporting}
+            className="w-full rounded-lg border border-slate-600 py-2 text-sm text-slate-300 hover:border-slate-400 hover:text-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Import from file
+            {isImporting ? 'Importing backup...' : 'Import from file'}
           </button>
           <input
             ref={fileInputRef}
@@ -142,7 +176,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             onChange={handleFileChange}
           />
 
-          {importError && <p className="text-xs text-red-400">{importError}</p>}
+          {status && <StatusNotice tone={status.tone} message={status.message} />}
 
           <button
             onClick={handleReset}

@@ -10,6 +10,9 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['icons/*.png', 'icons/*.svg'],
+      devOptions: {
+        enabled: true,
+      },
       manifest: {
         name: 'TrackIndexes',
         short_name: 'TrackIdx',

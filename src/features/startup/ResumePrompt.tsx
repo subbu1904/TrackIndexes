@@ -1,11 +1,18 @@
 import { useRef } from 'react';
 import type { SessionMetadata } from '../preferences/types';
+import { StatusNotice } from '../../shared/ui/StatusNotice';
 
 interface ResumePromptProps {
   metadata: SessionMetadata;
   onResume: () => void;
   onStartAfresh: () => void;
+  onImportRequest: () => void;
   onImport: (file: File) => void;
+  importStatus?: {
+    tone: 'info' | 'success' | 'error';
+    message: string;
+  } | null;
+  isImporting?: boolean;
 }
 
 /**
@@ -20,13 +27,17 @@ export function ResumePrompt({
   metadata,
   onResume,
   onStartAfresh,
+  onImportRequest,
   onImport,
+  importStatus,
+  isImporting = false,
 }: ResumePromptProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (file) onImport(file);
+    e.target.value = '';
   }
 
   const lastSaved = new Date(metadata.lastSavedAt).toLocaleString('en-IN', {
@@ -58,10 +69,14 @@ export function ResumePrompt({
 
           {/* Secondary — Import */}
           <button
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full rounded-lg border border-slate-600 py-3 text-sm font-medium text-slate-300 transition hover:border-slate-400 hover:text-slate-100"
+            onClick={() => {
+              onImportRequest();
+              fileInputRef.current?.click();
+            }}
+            disabled={isImporting}
+            className="w-full rounded-lg border border-slate-600 py-3 text-sm font-medium text-slate-300 transition hover:border-slate-400 hover:text-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Import from file — Restore from a backup
+            {isImporting ? 'Importing backup...' : 'Import from file — Restore from a backup'}
           </button>
           <input
             ref={fileInputRef}
@@ -70,6 +85,10 @@ export function ResumePrompt({
             className="hidden"
             onChange={handleFileChange}
           />
+
+          {importStatus && (
+            <StatusNotice tone={importStatus.tone} message={importStatus.message} />
+          )}
 
           {/* Destructive — Start afresh */}
           <button

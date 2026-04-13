@@ -1,4 +1,7 @@
-import type { IndexSnapshot } from '../types';
+import type { DataFreshness, IndexSnapshot } from '../types';
+import { formatAbsoluteChange, formatNumber } from '../../../shared/lib/formatNumber';
+import { formatPercent } from '../../../shared/lib/formatPercent';
+import { formatTime } from '../../../shared/lib/formatTime';
 
 interface IndexCardProps {
   name: string;
@@ -6,6 +9,7 @@ interface IndexCardProps {
   isLoading?: boolean;
   isError?: boolean;
   errorReason?: string;
+  onSelect?: () => void;
 }
 
 /**
@@ -19,17 +23,19 @@ export function IndexCard({
   isLoading,
   isError,
   errorReason,
+  onSelect,
 }: IndexCardProps) {
   const isPositive = (snapshot?.absoluteChange ?? 0) >= 0;
-  const sign = isPositive ? '+' : '';
   const changeColor = isPositive ? 'text-green-400' : 'text-red-400';
   const borderColor = isPositive ? 'border-green-500/20' : 'border-red-500/20';
-
-  return (
-    <div
-      className={`relative rounded-2xl border bg-slate-800 p-4 shadow-sm transition-colors ${borderColor}`}
-      aria-label={`${name} index card`}
-    >
+  const interactive = !!onSelect && !isLoading;
+  const cardClassName = `relative w-full rounded-2xl border bg-slate-800 p-4 text-left shadow-sm transition ${
+    interactive
+      ? 'cursor-pointer hover:border-slate-500 hover:bg-slate-800/90 focus:outline-none focus:ring-2 focus:ring-blue-500'
+      : ''
+  } ${borderColor}`;
+  const content = (
+    <>
       {/* Index name */}
       <div className="mb-1 text-xs font-medium uppercase tracking-wider text-slate-400">
         {snapshot?.source ?? '—'}
@@ -59,36 +65,50 @@ export function IndexCard({
       {snapshot && !isLoading && (
         <div className="mt-3">
           <p className="text-3xl font-bold tabular-nums text-slate-100">
-            {snapshot.value.toLocaleString('en-IN', {
-              minimumFractionDigits: 2,
-              maximumFractionDigits: 2,
-            })}
+            {formatNumber(snapshot.value)}
           </p>
           <p className={`mt-1 text-sm font-medium tabular-nums ${changeColor}`}>
             {isPositive ? '▲' : '▼'}{' '}
-            {sign}{snapshot.absoluteChange.toFixed(2)}{' '}
-            ({sign}{snapshot.percentageChange.toFixed(2)}%)
+            {formatAbsoluteChange(snapshot.absoluteChange)}{' '}
+            ({formatPercent(snapshot.percentageChange)})
           </p>
           <div className="mt-2 flex items-center gap-2">
             <FreshnessBadge freshness={snapshot.freshness} />
-            <span className="text-xs text-slate-500">
-              {new Date(snapshot.lastUpdated).toLocaleTimeString('en-IN', {
-                hour: 'numeric',
-                minute: '2-digit',
-                hour12: true,
-                timeZone: 'Asia/Kolkata',
-              })}
-            </span>
+            <span className="text-xs text-slate-500">{formatTime(snapshot.lastUpdated)}</span>
           </div>
         </div>
       )}
+
+      {interactive && (
+        <div className="mt-3 flex items-center justify-between text-xs text-slate-500">
+          <span>Tap for details</span>
+          <span aria-hidden="true">›</span>
+        </div>
+      )}
+    </>
+  );
+
+  if (interactive) {
+    return (
+      <button
+        type="button"
+        onClick={onSelect}
+        className={cardClassName}
+        aria-label={`Open details for ${name}`}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className={cardClassName} aria-label={`${name} index card`}>
+      {content}
     </div>
   );
 }
 
 // ─── Freshness Badge ──────────────────────────────────────────────────────────
-
-import type { DataFreshness } from '../types';
 
 const FRESHNESS_CONFIG: Record<
   DataFreshness,
@@ -102,7 +122,7 @@ const FRESHNESS_CONFIG: Record<
   unknown:        { label: 'Unknown',       className: 'bg-slate-600/40 text-slate-400' },
 };
 
-function FreshnessBadge({ freshness }: { freshness: DataFreshness }) {
+export function FreshnessBadge({ freshness }: { freshness: DataFreshness }) {
   const config = FRESHNESS_CONFIG[freshness];
   return (
     <span

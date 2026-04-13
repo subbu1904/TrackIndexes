@@ -32,6 +32,11 @@ interface StartupGateProps {
 export function StartupGate({ children }: StartupGateProps) {
   const [mode, setMode] = useState<StartupMode | 'loading'>('loading');
   const [metadata, setMetadata] = useState<SessionMetadata | null>(null);
+  const [importStatus, setImportStatus] = useState<{
+    tone: 'info' | 'success' | 'error';
+    message: string;
+  } | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
   const hydrateStore = usePreferencesStore((s) => s.hydrate);
 
   useEffect(() => {
@@ -94,14 +99,29 @@ export function StartupGate({ children }: StartupGateProps) {
   }
 
   async function handleImport(file: File) {
-    const text = await file.text();
+    setIsImporting(true);
+    setImportStatus({
+      tone: 'info',
+      message: `Importing ${file.name}...`,
+    });
+
     try {
+      const text = await file.text();
       const workspace = importPersistedState(text);
       hydrateStore(workspace.preferences.selectedIndexIds);
       await saveAppState(workspace);
+      setImportStatus({
+        tone: 'success',
+        message: `Imported ${file.name}. Opening your saved indexes...`,
+      });
       setMode('silent_resume'); // gate passes
     } catch (err) {
-      alert(`Import failed: ${(err as Error).message}`);
+      setImportStatus({
+        tone: 'error',
+        message: `Import failed: ${(err as Error).message}`,
+      });
+    } finally {
+      setIsImporting(false);
     }
   }
 
@@ -121,7 +141,15 @@ export function StartupGate({ children }: StartupGateProps) {
           metadata={metadata}
           onResume={handleResume}
           onStartAfresh={handleStartAfresh}
+          onImportRequest={() =>
+            setImportStatus({
+              tone: 'info',
+              message: 'Choose a TrackIndexes backup JSON file to restore your saved indexes.',
+            })
+          }
           onImport={handleImport}
+          importStatus={importStatus}
+          isImporting={isImporting}
         />
       )}
       {/* Children render in all modes; the prompt overlays them when needed */}
