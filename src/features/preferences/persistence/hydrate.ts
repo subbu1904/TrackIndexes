@@ -5,6 +5,7 @@ import type { PersistedWorkspace, SessionMetadata, ExportedState } from '../type
 import {
   METADATA_STORAGE_KEY,
   CURRENT_WORKSPACE_VERSION,
+  DEFAULT_ALERT_PREFERENCES,
 } from '../types';
 import { DEFAULT_INDEX_IDS } from '../../indexes/catalog/indexCatalog';
 
@@ -23,6 +24,7 @@ export function createDefaultWorkspace(): PersistedWorkspace {
     preferences: {
       selectedIndexIds: DEFAULT_INDEX_IDS,
       theme: 'dark',
+      alerts: DEFAULT_ALERT_PREFERENCES,
     },
     savedAt: Date.now(),
   };

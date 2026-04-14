@@ -1,5 +1,9 @@
 import type { PersistedWorkspace, DisplayPreferences } from '../types';
-import { CURRENT_WORKSPACE_VERSION } from '../types';
+import {
+  CURRENT_WORKSPACE_VERSION,
+  DEFAULT_ALERT_PREFERENCES,
+  type AlertMode,
+} from '../types';
 import { DEFAULT_INDEX_IDS } from '../../indexes/catalog/indexCatalog';
 
 /**
@@ -29,6 +33,14 @@ export function migrateWorkspace(raw: unknown): PersistedWorkspace {
     : {}) as Partial<DisplayPreferences>;
 
   const validThemes = ['light', 'dark', 'system'] as const;
+  const validAlertModes: AlertMode[] = [
+    'since_app_open',
+    'since_previous_fetch',
+    'since_previous_close',
+  ];
+  const rawAlerts = (typeof prefs.alerts === 'object' && prefs.alerts !== null
+    ? prefs.alerts
+    : {}) as Partial<DisplayPreferences['alerts']>;
 
   const preferences: DisplayPreferences = {
     selectedIndexIds: Array.isArray(prefs.selectedIndexIds)
@@ -37,6 +49,18 @@ export function migrateWorkspace(raw: unknown): PersistedWorkspace {
     theme: validThemes.includes(prefs.theme as never)
       ? (prefs.theme as DisplayPreferences['theme'])
       : 'dark',
+    alerts: {
+      enabled: typeof rawAlerts.enabled === 'boolean'
+        ? rawAlerts.enabled
+        : DEFAULT_ALERT_PREFERENCES.enabled,
+      mode: validAlertModes.includes(rawAlerts.mode as AlertMode)
+        ? (rawAlerts.mode as AlertMode)
+        : DEFAULT_ALERT_PREFERENCES.mode,
+      thresholdPoints:
+        typeof rawAlerts.thresholdPoints === 'number' && Number.isFinite(rawAlerts.thresholdPoints)
+          ? Math.max(1, Math.round(rawAlerts.thresholdPoints))
+          : DEFAULT_ALERT_PREFERENCES.thresholdPoints,
+    },
   };
 
   return {

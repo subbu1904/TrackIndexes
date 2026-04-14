@@ -4,6 +4,8 @@ import { getIndexById } from '../catalog/indexCatalog';
 import { IndexCard } from './IndexCard';
 import { IndexDetailSheet } from './IndexDetailSheet';
 import type { IndexDataProvider } from '../provider/IndexDataProvider';
+import { useIndexAlerts } from '../../alerts/useIndexAlerts';
+import { AlertToastStack } from '../../alerts/components/AlertToastStack';
 
 interface IndexGridProps {
   provider: IndexDataProvider;
@@ -19,6 +21,7 @@ interface IndexGridProps {
 export function IndexGrid({ provider, indexIds }: IndexGridProps) {
   const { data, isLoading, isError } = useIndexSnapshots(provider, indexIds);
   const [activeIndexId, setActiveIndexId] = useState<string | null>(null);
+  const { toasts, dismissToast } = useIndexAlerts(data?.snapshots ?? [], indexIds);
 
   const activeDefinition = activeIndexId ? getIndexById(activeIndexId) : undefined;
   const activeSnapshot = data?.snapshots.find((snapshot) => snapshot.id === activeIndexId);
@@ -26,6 +29,8 @@ export function IndexGrid({ provider, indexIds }: IndexGridProps) {
 
   return (
     <>
+      <AlertToastStack toasts={toasts} onDismiss={dismissToast} />
+
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {indexIds.map((id) => {
           const def = getIndexById(id);

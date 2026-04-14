@@ -1,0 +1,6 @@
+{
+  "appId": "com.trackindexes.app",
+  "appName": "TrackIndexes",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}

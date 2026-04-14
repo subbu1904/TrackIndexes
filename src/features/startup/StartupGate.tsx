@@ -49,7 +49,7 @@ export function StartupGate({ children }: StartupGateProps) {
         if (resolved === 'fresh') {
           // First visit — initialize with defaults immediately
           const defaults = createDefaultWorkspace();
-          hydrateStore(defaults.preferences.selectedIndexIds);
+          hydrateStore(defaults.preferences);
           try {
             await saveAppState(defaults);
           } catch {
@@ -62,9 +62,7 @@ export function StartupGate({ children }: StartupGateProps) {
         if (resolved === 'silent_resume') {
           // Restore without prompting
           const workspace = await hydrateAppState();
-          hydrateStore(
-            workspace?.preferences.selectedIndexIds ?? createDefaultWorkspace().preferences.selectedIndexIds
-          );
+          hydrateStore(workspace?.preferences ?? createDefaultWorkspace().preferences);
           setMode('silent_resume');
           return;
         }
@@ -74,7 +72,7 @@ export function StartupGate({ children }: StartupGateProps) {
       } catch {
         // If anything fails during startup, fall back to fresh defaults
         const defaults = createDefaultWorkspace();
-        hydrateStore(defaults.preferences.selectedIndexIds);
+        hydrateStore(defaults.preferences);
         setMode('fresh');
       }
     }
@@ -84,16 +82,14 @@ export function StartupGate({ children }: StartupGateProps) {
 
   async function handleResume() {
     const workspace = await hydrateAppState();
-    hydrateStore(
-      workspace?.preferences.selectedIndexIds ?? createDefaultWorkspace().preferences.selectedIndexIds
-    );
+    hydrateStore(workspace?.preferences ?? createDefaultWorkspace().preferences);
     setMode('silent_resume'); // gate passes
   }
 
   async function handleStartAfresh() {
     await clearPersistedState();
     const defaults = createDefaultWorkspace();
-    hydrateStore(defaults.preferences.selectedIndexIds);
+    hydrateStore(defaults.preferences);
     await saveAppState(defaults);
     setMode('fresh'); // gate passes
   }
@@ -108,7 +104,7 @@ export function StartupGate({ children }: StartupGateProps) {
     try {
       const text = await file.text();
       const workspace = importPersistedState(text);
-      hydrateStore(workspace.preferences.selectedIndexIds);
+      hydrateStore(workspace.preferences);
       await saveAppState(workspace);
       setImportStatus({
         tone: 'success',

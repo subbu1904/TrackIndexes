@@ -1,8 +1,26 @@
+export type AlertMode =
+  | 'since_app_open'
+  | 'since_previous_fetch'
+  | 'since_previous_close';
+
+export interface AlertPreferences {
+  enabled: boolean;
+  mode: AlertMode;
+  thresholdPoints: number;
+}
+
+export const DEFAULT_ALERT_PREFERENCES: AlertPreferences = {
+  enabled: true,
+  mode: 'since_app_open',
+  thresholdPoints: 50,
+};
+
 // ─── Display Preferences ──────────────────────────────────────────────────────
 
 export interface DisplayPreferences {
   selectedIndexIds: string[];
   theme?: 'light' | 'dark' | 'system';
+  alerts: AlertPreferences;
 }
 
 // ─── Persisted Workspace ──────────────────────────────────────────────────────
@@ -44,6 +62,6 @@ export interface ExportedState {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-export const CURRENT_WORKSPACE_VERSION = 1;
+export const CURRENT_WORKSPACE_VERSION = 2;
 export const METADATA_STORAGE_KEY = 'trackindexes_meta';
 export const WORKSPACE_IDB_KEY = 'workspace';
