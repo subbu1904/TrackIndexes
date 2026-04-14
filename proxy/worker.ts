@@ -1,12 +1,14 @@
 /**
- * Cloudflare Worker — Minimal Yahoo Finance CORS Proxy
+ * Cloudflare Worker — Minimal Yahoo Finance CORS Proxy (OPTIONAL)
  *
- * WHY THIS EXISTS:
- * Yahoo Finance does not send CORS headers for browser-originated requests.
- * This worker acts as a thin pass-through that fetches data server-side and
- * returns it with the appropriate CORS headers. It adds zero business logic.
+ * NOTE: This worker is no longer required for the Android/iOS app.
+ * The app now uses @capacitor-community/http which makes native HTTP requests
+ * that bypass CORS entirely, so no proxy is needed.
  *
- * DEPLOY:
+ * This file is kept for reference in case a web/PWA version of the app is
+ * built in the future and a browser-safe CORS proxy is needed.
+ *
+ * DEPLOY (if needed for a web build):
  *   1. Install Wrangler: npm install -g wrangler
  *   2. wrangler login
  *   3. wrangler deploy proxy/worker.ts
@@ -16,10 +18,6 @@
  *
  * RESPONSE:
  *   { quotes: YahooQuoteResult[] }
- *
- * RATE LIMITING:
- * For personal use, Yahoo Finance's unofficial rate limits are unlikely to be
- * hit at a 2-minute refresh interval. If needed, add KV-based rate limiting.
  */
 
 interface YahooQuoteResult {

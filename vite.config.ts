@@ -51,9 +51,8 @@ export default defineConfig(({ mode }) => {
           navigateFallback: 'index.html',
           runtimeCaching: [
             {
-              // Cache API responses with StaleWhileRevalidate
-              // The proxy URL pattern should be updated to match your deployed proxy
-              urlPattern: /\/api\/market-data/,
+              // Cache Yahoo Finance API responses with StaleWhileRevalidate
+              urlPattern: /query1\.finance\.yahoo\.com\/v7\/finance\/quote/,
               handler: 'StaleWhileRevalidate',
               options: {
                 cacheName: 'market-data-cache',
