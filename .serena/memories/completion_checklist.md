@@ -1,0 +1,1 @@
+When finishing work in this repo, run available verification commands first. Right now that means `npm test` and `npm run build`. Lint/typecheck are not configured yet, so call that out explicitly in reports until they are added.

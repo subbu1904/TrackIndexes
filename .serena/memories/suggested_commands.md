@@ -1,0 +1,1 @@
+Project commands:\n- `npm install` to install dependencies\n- `npm run dev` to run the Vite dev server\n- `npm test` to run the Node test suite\n- `npm run build` to create the production/PWA bundle\nUseful shell tools on this Linux workspace: `rg`, `git status --short`, `ls -la`, `sed -n 'start,endp' <file>`.

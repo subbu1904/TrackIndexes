@@ -1,0 +1,1 @@
+Use small, reviewable diffs. Prefer vanilla JS modules over framework abstractions. Keep state local-first, favor deletion/reuse over new layers, and avoid new dependencies unless clearly needed. UI styling uses CSS custom properties and component-oriented class names. Tests use Node's built-in `node:test` plus `assert/strict`.

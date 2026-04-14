@@ -1,0 +1,1 @@
+TrackIndexes is a local-first Vite PWA for near-realtime NIFTY 50 and SENSEX tracking. Current stack: vanilla JS modules, CSS, vite-plugin-pwa, Node built-in test runner. Current implementation includes scaffold, PWA manifest/icons, dashboard shell, Yahoo Finance quote service via corsproxy.io, and a polling controller for live updates.

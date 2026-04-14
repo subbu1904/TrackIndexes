@@ -1,0 +1,8 @@
+{
+  "appId": "com.trackindexes.app",
+  "appName": "TrackIndexes",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https"
+  }
+}

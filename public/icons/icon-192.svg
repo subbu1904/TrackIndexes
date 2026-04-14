@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" role="img" aria-label="TrackIndexes icon">
+  <defs>
+    <linearGradient id="bg192" x1="0%" x2="100%" y1="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b" />
+      <stop offset="100%" stop-color="#0f1720" />
+    </linearGradient>
+    <linearGradient id="trend192" x1="0%" x2="100%" y1="100%" y2="0%">
+      <stop offset="0%" stop-color="#f97316" />
+      <stop offset="100%" stop-color="#22c55e" />
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="44" fill="url(#bg192)" />
+  <path d="M42 121l28-20 22 12 46-48 12 12" fill="none" stroke="url(#trend192)" stroke-linecap="round" stroke-linejoin="round" stroke-width="14" />
+  <circle cx="70" cy="101" r="8" fill="#f8fafc" />
+  <circle cx="92" cy="113" r="8" fill="#f8fafc" />
+  <circle cx="138" cy="65" r="8" fill="#f8fafc" />
+</svg>
