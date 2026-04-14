@@ -2,9 +2,18 @@ import { computeSnapshotAgeSeconds } from "./normalize.js";
 import { readLatestQuoteSnapshot } from "./d1.js";
 import { refreshLatestQuoteSnapshot, shouldRefreshMarketSnapshot } from "./scheduled.js";
 
+const CORS_HEADERS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET, POST, OPTIONS",
+  "access-control-allow-headers": "content-type, authorization, x-refresh-token"
+};
+
 function jsonResponse(payload, { status = 200, headers = {} } = {}) {
   const responseHeaders = new Headers(headers);
   responseHeaders.set("content-type", "application/json; charset=utf-8");
+  for (const [key, value] of Object.entries(CORS_HEADERS)) {
+    responseHeaders.set(key, value);
+  }
 
   return new Response(JSON.stringify(payload), {
     status,
@@ -103,6 +112,10 @@ async function handleRefreshRequest(request, env) {
 
 export default {
   async fetch(request, env) {
+    if (request.method === "OPTIONS") {
+      return new Response(null, { status: 204, headers: CORS_HEADERS });
+    }
+
     const url = new URL(request.url);
 
     if (request.method === "GET" && url.pathname === "/api/quotes") {

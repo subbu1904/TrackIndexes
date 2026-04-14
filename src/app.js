@@ -115,7 +115,7 @@ export async function renderApp(root) {
       onRefresh: async () => {
         const didRefresh = await controller.forceRefresh();
         if (!didRefresh) {
-          currentDashboard?.setStatus("Refresh is limited to once per minute.");
+          currentDashboard?.setStatus("Already refreshing. Please wait a moment.");
         }
       },
       onReset: async () => {

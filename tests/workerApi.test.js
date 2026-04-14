@@ -136,3 +136,25 @@ test("refreshLatestQuoteSnapshot stores a partial stale snapshot when one symbol
   assert.equal(snapshot.isStale, true);
   assert.match(snapshot.sourceSummary, /\^BSESN:unavailable/);
 });
+
+test("OPTIONS preflight returns 204 with CORS headers", async () => {
+  const response = await worker.fetch(
+    new Request("https://example.com/api/quotes", { method: "OPTIONS" }),
+    { DB: createDbStub(null) },
+    { waitUntil() {} }
+  );
+
+  assert.equal(response.status, 204);
+  assert.equal(response.headers.get("access-control-allow-origin"), "*");
+  assert.equal(response.headers.get("access-control-allow-methods"), "GET, POST, OPTIONS");
+});
+
+test("GET /api/quotes includes CORS headers", async () => {
+  const response = await worker.fetch(
+    new Request("https://example.com/api/quotes"),
+    { DB: createDbStub(null) },
+    { waitUntil() {} }
+  );
+
+  assert.equal(response.headers.get("access-control-allow-origin"), "*");
+});

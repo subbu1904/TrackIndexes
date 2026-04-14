@@ -49,7 +49,7 @@ test("start loads the market snapshot and emits an update", async () => {
   });
 });
 
-test("forceRefresh respects the minimum refresh interval", async () => {
+test("forceRefresh bypasses the minimum refresh interval", async () => {
   let nowValue = 60_000;
   const calls = [];
 
@@ -74,14 +74,10 @@ test("forceRefresh respects the minimum refresh interval", async () => {
 
   await controller.start();
 
-  nowValue = 90_000;
-  const blockedRefresh = await controller.forceRefresh();
+  nowValue = 70_000;
+  const immediateRefresh = await controller.forceRefresh();
 
-  nowValue = 121_000;
-  const allowedRefresh = await controller.forceRefresh();
-
-  assert.equal(blockedRefresh, false);
-  assert.equal(allowedRefresh, true);
+  assert.equal(immediateRefresh, true);
   assert.equal(calls.length, 2);
 });
 

@@ -5,8 +5,8 @@ const DEFAULT_SYMBOLS = ["^NSEI", "^BSESN"];
 export function createPollController({
   fetchMarketDataImpl = fetchMarketSnapshot,
   symbols = DEFAULT_SYMBOLS,
-  pollIntervalMs = 60_000,
-  minRefreshMs = 60_000,
+  pollIntervalMs = 30_000,
+  minRefreshMs = 30_000,
   now = () => Date.now(),
   setIntervalImpl = setInterval,
   clearIntervalImpl = clearInterval,
@@ -97,7 +97,7 @@ export function createPollController({
       removeEventListenerImpl?.("online", handleOnline);
     },
     async forceRefresh() {
-      return refreshQuotes();
+      return refreshQuotes({ bypassRateLimit: true });
     }
   };
 }
