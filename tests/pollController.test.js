@@ -3,14 +3,22 @@ import assert from "node:assert/strict";
 
 import { createPollController } from "../src/services/pollController.js";
 
-test("start loads both tracked indices and emits an update", async () => {
+test("start loads the market snapshot and emits an update", async () => {
   const calls = [];
   let intervalCallback = null;
 
   const controller = createPollController({
-    fetchQuoteImpl: async (symbol) => {
-      calls.push(symbol);
-      return { symbol };
+    fetchMarketDataImpl: async ({ symbols }) => {
+      calls.push(symbols);
+      return {
+        quotes: [{ symbol: "^NSEI" }, { symbol: "^BSESN" }],
+        lastUpdatedAt: "2026-04-14T09:15:04.000Z",
+        meta: {
+          stale: false,
+          ageSeconds: 4,
+          fetchedAt: "2026-04-14T09:15:04.000Z"
+        }
+      };
     },
     now: () => 60_000,
     setIntervalImpl: (callback) => {
@@ -27,12 +35,17 @@ test("start loads both tracked indices and emits an update", async () => {
   const started = await controller.start();
 
   assert.equal(started, true);
-  assert.deepEqual(calls, ["^NSEI", "^BSESN"]);
+  assert.deepEqual(calls, [["^NSEI", "^BSESN"]]);
   assert.equal(typeof intervalCallback, "function");
   assert.deepEqual(events.at(-1), {
     type: "update",
     quotes: [{ symbol: "^NSEI" }, { symbol: "^BSESN" }],
-    lastUpdatedAt: 60_000
+    lastUpdatedAt: "2026-04-14T09:15:04.000Z",
+    meta: {
+      stale: false,
+      ageSeconds: 4,
+      fetchedAt: "2026-04-14T09:15:04.000Z"
+    }
   });
 });
 
@@ -41,9 +54,17 @@ test("forceRefresh respects the minimum refresh interval", async () => {
   const calls = [];
 
   const controller = createPollController({
-    fetchQuoteImpl: async (symbol) => {
-      calls.push(symbol);
-      return { symbol };
+    fetchMarketDataImpl: async ({ symbols }) => {
+      calls.push(symbols);
+      return {
+        quotes: symbols.map((symbol) => ({ symbol })),
+        lastUpdatedAt: "2026-04-14T09:15:04.000Z",
+        meta: {
+          stale: false,
+          ageSeconds: 4,
+          fetchedAt: "2026-04-14T09:15:04.000Z"
+        }
+      };
     },
     now: () => nowValue,
     setIntervalImpl: () => 1,
@@ -61,12 +82,12 @@ test("forceRefresh respects the minimum refresh interval", async () => {
 
   assert.equal(blockedRefresh, false);
   assert.equal(allowedRefresh, true);
-  assert.equal(calls.length, 4);
+  assert.equal(calls.length, 2);
 });
 
 test("start emits offline status instead of fetching when the device is offline", async () => {
   const controller = createPollController({
-    fetchQuoteImpl: async () => {
+    fetchMarketDataImpl: async () => {
       throw new Error("should not fetch");
     },
     now: () => 60_000,
@@ -90,9 +111,17 @@ test("controller retries when connectivity returns after start", async () => {
   const calls = [];
 
   const controller = createPollController({
-    fetchQuoteImpl: async (symbol) => {
-      calls.push(symbol);
-      return { symbol };
+    fetchMarketDataImpl: async ({ symbols }) => {
+      calls.push(symbols);
+      return {
+        quotes: symbols.map((symbol) => ({ symbol })),
+        lastUpdatedAt: "2026-04-14T09:15:04.000Z",
+        meta: {
+          stale: false,
+          ageSeconds: 4,
+          fetchedAt: "2026-04-14T09:15:04.000Z"
+        }
+      };
     },
     now: () => 120_000,
     setIntervalImpl: () => 1,
@@ -113,6 +142,6 @@ test("controller retries when connectivity returns after start", async () => {
   online = true;
   await onlineHandler?.();
 
-  assert.deepEqual(calls, ["^NSEI", "^BSESN"]);
+  assert.deepEqual(calls, [["^NSEI", "^BSESN"]]);
   assert.equal(events.at(-1).type, "update");
 });

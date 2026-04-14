@@ -1,9 +1,9 @@
-import { fetchQuote } from "./yahooFinance.js";
+import { fetchMarketSnapshot } from "./marketDataService.js";
 
 const DEFAULT_SYMBOLS = ["^NSEI", "^BSESN"];
 
 export function createPollController({
-  fetchQuoteImpl = fetchQuote,
+  fetchMarketDataImpl = fetchMarketSnapshot,
   symbols = DEFAULT_SYMBOLS,
   pollIntervalMs = 60_000,
   minRefreshMs = 60_000,
@@ -16,7 +16,7 @@ export function createPollController({
 } = {}) {
   const listeners = new Set();
   let intervalId = null;
-  let lastUpdatedAt = 0;
+  let lastRefreshAt = 0;
   let inFlight = false;
   let isStarted = false;
 
@@ -43,7 +43,7 @@ export function createPollController({
     }
 
     const currentTime = now();
-    if (!bypassRateLimit && lastUpdatedAt && currentTime - lastUpdatedAt < minRefreshMs) {
+    if (!bypassRateLimit && lastRefreshAt && currentTime - lastRefreshAt < minRefreshMs) {
       return false;
     }
 
@@ -51,9 +51,14 @@ export function createPollController({
     emit({ type: "status", status: "loading" });
 
     try {
-      const quotes = await Promise.all(symbols.map((symbol) => fetchQuoteImpl(symbol)));
-      lastUpdatedAt = currentTime;
-      emit({ type: "update", quotes, lastUpdatedAt });
+      const snapshot = await fetchMarketDataImpl({ symbols });
+      lastRefreshAt = currentTime;
+      emit({
+        type: "update",
+        quotes: snapshot.quotes,
+        lastUpdatedAt: snapshot.lastUpdatedAt,
+        meta: snapshot.meta
+      });
       return true;
     } catch (error) {
       emit({ type: "error", error });

@@ -1,6 +1,7 @@
 dist/
 node_modules/
 .DS_Store
+.wrangler/
 android/.gradle/
 android/build/
 android/app/build/

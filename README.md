@@ -37,6 +37,18 @@ Build the production PWA bundle:
 npm run build
 ```
 
+The committed production build points at the deployed Worker API:
+
+```bash
+https://trackindexes-market-data.rampalli1.workers.dev/api/quotes
+```
+
+Use a custom market data API endpoint during build or dev:
+
+```bash
+VITE_MARKET_DATA_API_URL=https://your-worker.your-subdomain.workers.dev/api/quotes npm run dev
+```
+
 Build with a GitHub Pages base path override:
 
 ```bash
@@ -49,9 +61,49 @@ Preview the built app:
 npm run preview
 ```
 
+## Market Data API
+
+The app now prefers a normalized market data API instead of fetching provider-specific market feeds directly.
+
+Default behavior:
+- The client reads from `/api/quotes`
+- If that API is unavailable, the app temporarily falls back to the legacy client-side quote fetch path
+
+For Android builds and GitHub Pages deployments, set `VITE_MARKET_DATA_API_URL` to the deployed Worker URL so the app can reach the API from outside the Worker origin.
+
+This repository now commits that production URL in `.env.production`, and the GitHub Pages workflow exports the same value during the build.
+
+## Cloudflare Worker
+
+Worker scaffold and D1 files live under [worker](worker).
+
+Useful commands:
+
+```bash
+npm run worker:dev
+npm run worker:d1:migrate:local
+npm run worker:deploy
+```
+
+Before remote deploys, replace the placeholder `database_id` in [worker/wrangler.toml](worker/wrangler.toml) with your real D1 database ID.
+
+Protected manual refresh route:
+
+```bash
+curl -X POST \
+	-H "x-refresh-token: YOUR_ADMIN_REFRESH_TOKEN" \
+	https://YOUR-WORKER-URL/api/admin/refresh
+```
+
+Set the token as a Wrangler secret before using the route:
+
+```bash
+printf '%s' 'YOUR_ADMIN_REFRESH_TOKEN' | npx wrangler secret put ADMIN_REFRESH_TOKEN --config worker/wrangler.toml
+```
+
 ## Current Features
 
-- Live quote polling for `^NSEI` and `^BSESN` through Yahoo Finance via `corsproxy.io`
+- Live quote polling for `^NSEI` and `^BSESN` through the deployed Cloudflare Worker API with client-side fallback
 - 60-second refresh throttling
 - Device-local resume/start-afresh entry flow
 - Autosaved workspace with cached quotes and theme preference

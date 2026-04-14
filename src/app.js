@@ -14,8 +14,17 @@ const timeFormatter = new Intl.DateTimeFormat("en-IN", {
 });
 
 function buildDashboardStatus(workspace) {
+  const marketDataMeta = workspace.marketDataMeta ?? {};
+
   return workspace.lastUpdatedAt
-    ? `Updated ${timeFormatter.format(new Date(workspace.lastUpdatedAt))} · ~15 min delayed`
+    ? [
+        `Updated ${timeFormatter.format(new Date(workspace.lastUpdatedAt))}`,
+        marketDataMeta.stale
+          ? "Cached market data"
+          : workspace.lastQuotes?.some((quote) => quote.isDelayed)
+            ? "Delayed market data"
+            : "Live market data"
+      ].join(" · ")
     : "Loading live market data...";
 }
 
@@ -100,7 +109,7 @@ export async function renderApp(root) {
       },
       onAbout: async () => {
         globalThis.alert?.(
-          `TrackIndexes v0.1.0\nData from Yahoo Finance via corsproxy.io\nQuotes are delayed by about 15 minutes.`
+          `TrackIndexes v0.1.0\nData from the TrackIndexes market data API cache.\nLive source outages may fall back to cached market data.`
         );
       },
       onRefresh: async () => {
@@ -194,7 +203,9 @@ export async function renderApp(root) {
 
     if (event.type === "error") {
       currentDashboard.setStatus(
-        event.error?.message ?? "Market data could not be loaded right now."
+        currentWorkspace?.lastQuotes?.length
+          ? `${buildDashboardStatus(currentWorkspace)} · Refresh failed`
+          : event.error?.message ?? "Market data could not be loaded right now."
       );
       currentDashboard.setRefreshEnabled(true);
       currentDashboard.setRefreshVisible(true);
@@ -210,7 +221,8 @@ export async function renderApp(root) {
       currentWorkspace = {
         ...currentWorkspace,
         lastQuotes: event.quotes,
-        lastUpdatedAt: new Date(event.lastUpdatedAt).toISOString()
+        lastUpdatedAt: event.lastUpdatedAt,
+        marketDataMeta: event.meta
       };
       currentDashboard.setQuotes(event.quotes);
       currentDashboard.setStatus(buildDashboardStatus(currentWorkspace));

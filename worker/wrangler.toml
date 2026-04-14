@@ -1,0 +1,13 @@
+name = "trackindexes-market-data"
+main = "src/index.js"
+compatibility_date = "2026-04-14"
+workers_dev = true
+
+[triggers]
+crons = ["* 3-10 * * 1-5"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "trackindexes"
+database_id = "8cfafc0e-d3f0-4797-8305-020a712dfb5a"
+migrations_dir = "migrations"

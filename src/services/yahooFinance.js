@@ -33,7 +33,16 @@ export class QuoteHttpError extends Error {
 
 export function buildYahooChartUrl(symbol) {
   const encodedSymbol = encodeURIComponent(symbol);
+  return `${BASE_URL}/${encodedSymbol}?interval=1d&range=1d`;
+}
+
+export function buildYahooProxyChartUrl(symbol) {
+  const encodedSymbol = encodeURIComponent(symbol);
   return `${CORS_PROXY_URL}${BASE_URL}/${encodedSymbol}?interval=1d&range=1d`;
+}
+
+function buildYahooRequestUrls(symbol) {
+  return [buildYahooChartUrl(symbol), buildYahooProxyChartUrl(symbol)];
 }
 
 export function parseYahooChartQuote(symbol, payload) {
@@ -78,19 +87,49 @@ export async function fetchQuote(
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetchImpl(buildYahooChartUrl(symbol), {
-      signal: controller.signal
-    });
+    let lastError = null;
 
-    if (!response.ok) {
-      throw new QuoteHttpError(
-        `Market data for ${SYMBOL_NAMES[symbol] ?? symbol} could not be loaded.`,
-        response.status
-      );
+    for (const url of buildYahooRequestUrls(symbol)) {
+      try {
+        const response = await fetchImpl(url, {
+          signal: controller.signal
+        });
+
+        if (!response.ok) {
+          lastError = new QuoteHttpError(
+            `Market data for ${SYMBOL_NAMES[symbol] ?? symbol} could not be loaded.`,
+            response.status
+          );
+          continue;
+        }
+
+        const payload = await response.json();
+        return parseYahooChartQuote(symbol, payload);
+      } catch (error) {
+        if (error?.name === "AbortError") {
+          throw error;
+        }
+
+        if (
+          error instanceof QuoteParsingError ||
+          error instanceof QuoteHttpError ||
+          error instanceof QuoteNetworkError
+        ) {
+          lastError = error;
+          continue;
+        }
+
+        lastError = error;
+      }
     }
 
-    const payload = await response.json();
-    return parseYahooChartQuote(symbol, payload);
+    if (lastError instanceof QuoteParsingError || lastError instanceof QuoteHttpError) {
+      throw lastError;
+    }
+
+    throw new QuoteNetworkError(
+      `Market data for ${SYMBOL_NAMES[symbol] ?? symbol} could not be loaded.`
+    );
   } catch (error) {
     if (error?.name === "AbortError") {
       throw new QuoteNetworkError(

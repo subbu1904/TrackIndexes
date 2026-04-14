@@ -4,6 +4,7 @@ import assert from "node:assert/strict";
 import { createIndexQuote } from "../src/models/IndexQuote.js";
 import {
   buildYahooChartUrl,
+  buildYahooProxyChartUrl,
   fetchQuote,
   parseYahooChartQuote
 } from "../src/services/yahooFinance.js";
@@ -30,9 +31,13 @@ test("createIndexQuote normalizes serializable quote data", () => {
   });
 });
 
-test("buildYahooChartUrl URL-encodes index symbols for the proxy", () => {
+test("buildYahooChartUrl URL-encodes index symbols for direct and proxied requests", () => {
   assert.equal(
     buildYahooChartUrl("^BSESN"),
+    "https://query1.finance.yahoo.com/v8/finance/chart/%5EBSESN?interval=1d&range=1d"
+  );
+  assert.equal(
+    buildYahooProxyChartUrl("^BSESN"),
     "https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/%5EBSESN?interval=1d&range=1d"
   );
 });
@@ -108,9 +113,48 @@ test("fetchQuote loads Yahoo data through an injected fetch implementation", asy
 
   assert.equal(
     calls[0],
-    "https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/%5EBSESN?interval=1d&range=1d"
+    "https://query1.finance.yahoo.com/v8/finance/chart/%5EBSESN?interval=1d&range=1d"
   );
   assert.equal(quote.name, "SENSEX");
   assert.equal(quote.price, 79912.4);
   assert.equal(quote.changePercent, -0.1);
+});
+
+test("fetchQuote falls back to the proxy when direct Yahoo access fails", async () => {
+  const calls = [];
+  const quote = await fetchQuote("^NSEI", {
+    fetchImpl: async (url) => {
+      calls.push(url);
+
+      if (calls.length === 1) {
+        throw new TypeError("Failed to fetch");
+      }
+
+      return {
+        ok: true,
+        json: async () => ({
+          chart: {
+            result: [
+              {
+                meta: {
+                  symbol: "^NSEI",
+                  regularMarketPrice: 24321.55,
+                  regularMarketChange: 128.35,
+                  regularMarketChangePercent: 0.53,
+                  regularMarketTime: 1713079800
+                }
+              }
+            ]
+          }
+        })
+      };
+    }
+  });
+
+  assert.deepEqual(calls, [
+    "https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI?interval=1d&range=1d",
+    "https://corsproxy.io/?https://query1.finance.yahoo.com/v8/finance/chart/%5ENSEI?interval=1d&range=1d"
+  ]);
+  assert.equal(quote.name, "NIFTY 50");
+  assert.equal(quote.price, 24321.55);
 });

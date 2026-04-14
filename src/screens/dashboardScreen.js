@@ -106,9 +106,12 @@ export function createDashboardScreen({
     },
     setOffline(isOffline) {
       cardsBySymbol.forEach((card, symbol) => {
+        const existingQuote = card.__quote ?? placeholderQuotes.find((entry) => entry.symbol === symbol);
         const quote = {
-          ...(card.__quote ?? placeholderQuotes.find((entry) => entry.symbol === symbol)),
-          statusLabel: isOffline ? "Offline" : "~15 min delayed",
+          ...existingQuote,
+          statusLabel: isOffline
+            ? "Offline"
+            : existingQuote?.statusLabel ?? "Delayed",
           state: card.__quote?.state === "error" ? "error" : card.__quote?.state ?? "ready"
         };
         const nextCard = createIndexCard(quote, {
