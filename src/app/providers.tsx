@@ -20,17 +20,17 @@ const queryClient = new QueryClient({
 });
 
 /**
- * Active data provider — switches between mock and live based on VITE_PROXY_URL.
- * Per RevisedBuildPlan.md §F: treat proxy as likely required; mock first.
+ * Active data provider — uses YahooFinanceProvider (live data via native HTTP)
+ * by default. Set VITE_USE_MOCK=true at build time to use MockProvider instead
+ * (useful for development/offline testing without hitting Yahoo Finance).
  */
 function createDataProvider(): IndexDataProvider {
-  const proxyUrl = import.meta.env.VITE_PROXY_URL as string | undefined;
-  if (proxyUrl) {
-    console.info(`[TrackIndexes] Using YahooFinanceProvider via proxy: ${proxyUrl}`);
-    return new YahooFinanceProvider(proxyUrl);
+  if (import.meta.env.VITE_USE_MOCK === 'true') {
+    console.info('[TrackIndexes] VITE_USE_MOCK=true — using MockProvider.');
+    return new MockProvider({ delayMs: 700 });
   }
-  console.info('[TrackIndexes] VITE_PROXY_URL not set — using MockProvider.');
-  return new MockProvider({ delayMs: 700 });
+  console.info('[TrackIndexes] Using YahooFinanceProvider (native HTTP, no proxy required).');
+  return new YahooFinanceProvider();
 }
 
 export const dataProvider: IndexDataProvider = createDataProvider();

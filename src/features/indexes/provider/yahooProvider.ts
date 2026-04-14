@@ -1,31 +1,29 @@
+import { Http } from '@capacitor-community/http';
 import type { IndexDataProvider } from './IndexDataProvider';
 import type { ProviderResult } from '../types';
 import { normalizeYahooQuote, type RawYahooQuote } from './normalizeSnapshot';
 import { INDEX_CATALOG } from '../catalog/indexCatalog';
 
 /**
- * YahooFinanceProvider — fetches data via a thin CORS proxy.
+ * YahooFinanceProvider — fetches data directly from Yahoo Finance using the
+ * Capacitor native HTTP plugin, which bypasses browser CORS restrictions
+ * entirely because requests are issued at the Android/iOS native layer.
  *
- * WHY A PROXY IS REQUIRED:
- * Yahoo Finance does not serve CORS headers for browser-originated requests.
- * A minimal Cloudflare Worker (proxy/worker.ts) fetches server-side and
- * returns data with appropriate CORS headers. No business logic in the proxy.
+ * No proxy or server infrastructure is required.
  *
- * PROXY CONTRACT:
- *   GET /api/market-data?symbols=^NSEI,^BSESN
- *   Response: { quotes: RawYahooQuote[] }
+ * UPSTREAM API:
+ *   GET https://query1.finance.yahoo.com/v7/finance/quote?symbols=...&fields=...
+ *   Response: { quoteResponse: { result: RawYahooQuote[] } }
  *
  * FRESHNESS:
  * Yahoo Finance provides 15-minute delayed data for Indian indexes.
  * This is surfaced via the `freshness` field on each IndexSnapshot.
  */
+
+const YAHOO_BASE_URL = 'https://query1.finance.yahoo.com';
+const FIELDS = 'regularMarketPrice,regularMarketChange,regularMarketChangePercent,regularMarketTime,currency,marketState';
+
 export class YahooFinanceProvider implements IndexDataProvider {
-  private readonly proxyBaseUrl: string;
-
-  constructor(proxyBaseUrl: string) {
-    this.proxyBaseUrl = proxyBaseUrl.replace(/\/$/, '');
-  }
-
   async getSnapshots(indexIds: string[]): Promise<ProviderResult> {
     const fetchedAt = Date.now();
 
@@ -47,17 +45,22 @@ export class YahooFinanceProvider implements IndexDataProvider {
     }
 
     const symbols = resolved.map((r) => r.symbol).join(',');
-    const url = `${this.proxyBaseUrl}/api/market-data?symbols=${encodeURIComponent(symbols)}`;
+    const url = `${YAHOO_BASE_URL}/v7/finance/quote?symbols=${encodeURIComponent(symbols)}&fields=${FIELDS}`;
 
     let rawQuotes: RawYahooQuote[];
     try {
-      const response = await fetch(url, {
-        signal: AbortSignal.timeout(10_000),
+      const response = await Http.get({
+        url,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; TrackIndexes/1.0)',
+          Accept: 'application/json',
+        },
+        connectTimeout: 10_000,
+        readTimeout: 10_000,
       });
 
-      if (!response.ok) {
-        // Treat entire batch as failed; UI shows error per card
-        const reason = `Proxy HTTP ${response.status}`;
+      if (response.status < 200 || response.status >= 300) {
+        const reason = `Yahoo Finance HTTP ${response.status}`;
         return {
           snapshots: [],
           partialFailures: [
@@ -67,11 +70,11 @@ export class YahooFinanceProvider implements IndexDataProvider {
         };
       }
 
-      const data = (await response.json()) as { quotes: RawYahooQuote[] };
-      if (!Array.isArray(data.quotes)) {
-        throw new Error('Malformed proxy response: missing quotes array');
+      const data = response.data as { quoteResponse: { result: RawYahooQuote[] } };
+      if (!Array.isArray(data.quoteResponse?.result)) {
+        throw new Error('Malformed Yahoo Finance response: missing quoteResponse.result array');
       }
-      rawQuotes = data.quotes;
+      rawQuotes = data.quoteResponse.result;
     } catch (err) {
       const reason = err instanceof Error ? err.message : String(err);
       return {
@@ -88,7 +91,7 @@ export class YahooFinanceProvider implements IndexDataProvider {
     for (const { id, symbol } of resolved) {
       const raw = rawQuotes.find((q) => q.symbol === symbol);
       if (!raw) {
-        partialFailures.push({ id, reason: `Symbol ${symbol} missing from proxy response` });
+        partialFailures.push({ id, reason: `Symbol ${symbol} missing from Yahoo Finance response` });
       } else {
         snapshots.push(normalizeYahooQuote(raw, id, fetchedAt));
       }
