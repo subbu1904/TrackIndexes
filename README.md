@@ -37,6 +37,12 @@ Build the production PWA bundle:
 npm run build
 ```
 
+Build with a GitHub Pages base path override:
+
+```bash
+VITE_BASE_PATH=/TrackIndexes/ npm run build
+```
+
 Preview the built app:
 
 ```bash
@@ -84,7 +90,15 @@ Debug APK build:
 npm run android:debug
 ```
 
+Unsigned release APK build:
+
+```bash
+cd android && ./gradlew assembleRelease
+```
+
 On this machine, web build and Capacitor sync work, but APK compilation is currently blocked by the installed JDK being Java 17 instead of Java 21.
+
+For GitHub Pages project-site hosting, the repo now supports a configurable base path. The included workflow builds with `VITE_BASE_PATH` set to the repository name and deploys the `dist` directory to Pages.
 
 ## Verification
 
